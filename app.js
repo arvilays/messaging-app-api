@@ -1,8 +1,9 @@
-require("dotenv").config();
-
-const express = require("express");
-const cors = require("cors");
-const passport = require("passport");
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import passport from "passport";
+import "./config/passport.js";
+import apiRoutes from "./routes/routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,18 +12,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// --- Passport ---
-require("./config/passport");
 app.use(passport.initialize());
 
-// --- Routers + Route Mounting ---
-const routes = require("./routes/routes");
-app.use("/api/", routes);
-
+// --- Routes ---
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to the API!" });
+  res.json({ message: "Welcome to the Echo Messenger API! ✨" });
 });
+app.use("/api", apiRoutes);
 
 // --- Error Handler ---
 app.use((err, req, res, next) => {

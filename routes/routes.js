@@ -1,21 +1,32 @@
-const express = require("express");
-const router = express.Router();
-const passport = require("passport");
-const controller = require("../controllers/controller");
 
-// --- Public Routes ---
+
+import { Router } from "express";
+import passport from "passport";
+import * as controller from "../controllers/controller.js";
+
+const router = Router();
+
+// --- Authentication Routes ---
+router.post("/signup", ...controller.signup_post);
 router.post("/login", controller.login_post);
-router.post("/signup", controller.signup_post);
 
-// --- Protected Routes ---
+// --- Protected Routes Middleware ---
 const protect = passport.authenticate("jwt", { session: false });
 
+// --- User Routes ---
 router.get("/user", protect, controller.user_get);
+router.post("/user-avatar", protect, controller.user_avatar_post);
 
-router.get("/conversation/:id", protect, controller.conversation_get);
+// --- Conversation Routes ---
 router.post("/conversation", protect, controller.conversation_post);
-router.post("/conversation-add-user", protect, controller.conversation_add_user_post);
+router.get("/conversation/:id", protect, ...controller.conversation_get);
+router.post("/conversation-add-user", protect, ...controller.conversation_add_user_post);
 
-router.post("/message", protect, controller.message_post);
+// --- Message Routes ---
+router.post("/message", protect, ...controller.message_post);
 
-module.exports = router;
+// --- Polling Routes ---
+router.get("/conversations/updates", protect, controller.conversation_updates_get);
+router.get("/conversation/:id/messages/new", protect, ...controller.new_messages_get);
+
+export default router;

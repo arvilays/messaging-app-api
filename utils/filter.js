@@ -1,4 +1,4 @@
-const { blacklist } = require("./profanityList");
+import { blacklist } from "./profanityList.js";
 
 const blacklistSet = new Set(blacklist.map(word => word.toLowerCase()));
 
@@ -19,13 +19,13 @@ function normalize(word) {
   return lowered.replace(/[^a-z]/g, '');
 }
 
-function isProfane(text) {
+export function isProfane(text) {
   return text
     .split(/\s+/)
     .some(word => blacklistSet.has(normalize(word)));
 }
 
-function clean(text) {
+export function clean(text) {
   return text
     .split(/\s+/)
     .map(word => {
@@ -34,8 +34,3 @@ function clean(text) {
     })
     .join(' ');
 }
-
-module.exports = {
-  isProfane,
-  clean
-};

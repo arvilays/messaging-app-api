@@ -1,5 +1,5 @@
 // Source: https://www.cs.cmu.edu/~biglou/resources/bad-words.txt
-const blacklist = [
+export const blacklist = [
   "4r5e", "5h1t", "5hit", "a55", "anal", "anus", "ar5e", "arrse", "arse",
   "ass", "ass-fucker", "asses", "assfucker", "assfukka", "asshole", "assholes", "asswhole",
   "a_s_s", "b!tch", "b00bs", "b17ch", "b1tch", "ballbag", "balls", "ballsack",
@@ -57,6 +57,4 @@ const blacklist = [
   "w00se", "wang", "wank", "wanker", "wanky", "whoar", "whore", "willies",
   "willy", "xrated", "xxx"
 ];
-
-module.exports = { blacklist };
 
