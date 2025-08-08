@@ -1,5 +1,3 @@
-
-
 import { Router } from "express";
 import passport from "passport";
 import * as controller from "../controllers/controller.js";
@@ -21,6 +19,7 @@ router.post("/user-avatar", protect, controller.user_avatar_post);
 router.post("/conversation", protect, controller.conversation_post);
 router.get("/conversation/:id", protect, ...controller.conversation_get);
 router.post("/conversation-add-user", protect, ...controller.conversation_add_user_post);
+router.post("/conversation-leave", protect, ...controller.conversation_leave_post);
 
 // --- Message Routes ---
 router.post("/message", protect, ...controller.message_post);

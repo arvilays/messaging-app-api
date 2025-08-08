@@ -7,13 +7,13 @@ import { body, validationResult } from "express-validator";
 
 const COMBINING_MARK_REGEX = /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF]/g;
 
-// --- Utility Functions ---
+// --- Utility Functions & Middleware ---
+// Check for glitchy and distorted text
 function isZalgo(text) {
   const matches = text.match(COMBINING_MARK_REGEX);
   return matches && matches.length > 2;
 }
 
-// --- Middleware ---
 // Verify if the logged-in user is a member of the requested conversation.
 const checkConversationAuth = async (req, res, next) => {
   try {
@@ -143,14 +143,15 @@ export const user_get = async (req, res, next) => {
 export const user_avatar_post = async (req, res, next) => {
   try {
     const { emoji } = req.body;
-    const regex = emojiRegex();
 
     if (!emoji) {
       return res.status(400).json({ error: "Emoji is required." });
     }
 
-    const matches = emoji.match(regex);
-    if (!matches || matches.length !== 1 || matches[0] !== emoji.trim()) {
+    const segmenter = new Intl.Segmenter();
+    const segments = Array.from(segmenter.segment(emoji));
+
+    if (segments.length !== 1 || !emojiRegex().test(segments[0].segment)) {
       return res.status(400).json({ error: "Avatar must be a single emoji." });
     }
 
@@ -176,6 +177,7 @@ export const conversation_get = [
       const conversationDetails = await prisma.conversation.findUnique({
         where: { id: req.params.id },
         select: {
+          id: true,
           users: {
             select: { username: true, emoji: true },
             orderBy: { username: "asc" },
@@ -209,6 +211,10 @@ export const conversation_post = async (req, res, next) => {
 
     const usersToFind = [...new Set([req.user.username, ...usernames])];
 
+    if (usersToFind.length < 2) {
+      return res.status(400).json({ error: "You cannot create a conversation with only yourself." });
+    }
+
     const foundUsers = await prisma.user.findMany({
       where: { username: { in: usersToFind } },
       select: { id: true, username: true },
@@ -220,6 +226,41 @@ export const conversation_post = async (req, res, next) => {
       return res.status(404).json({ error: "One or more users were not found.", notFound });
     }
 
+    const allUserIds = foundUsers.map(u => u.id);
+
+    // Check if conversation with provided users already exist
+    const conversations = await prisma.conversation.findMany({
+      where: {
+        users: {
+          every: {
+            id: { in: allUserIds },
+          },
+        },
+      },
+      include: {
+        users: {
+          select: { id: true },
+        },
+      },
+    });
+
+    const existingConversation = conversations.find((conv) => {
+      const memberIds = conv.users.map((u) => u.id).sort();
+      const targetIds = [...allUserIds].sort();
+      return (
+        memberIds.length === targetIds.length &&
+        memberIds.every((id, i) => id === targetIds[i])
+      );
+    });
+
+    if (existingConversation) {
+      return res.status(200).json({
+        message: "Conversation with these members already exists.",
+        conversationId: existingConversation.id,
+      });
+    }
+
+    // Create new conversation
     const newConversation = await prisma.conversation.create({
       data: {
         users: { connect: foundUsers.map(u => ({ id: u.id })) },
@@ -240,14 +281,26 @@ export const conversation_add_user_post = [
   checkConversationAuth,
   async (req, res, next) => {
     try {
-      const { addUserId } = req.body;
+      const { addUsername } = req.body;
       const { conversation } = req;
 
-      if (!addUserId) {
-        return res.status(400).json({ error: "User ID to add is required." });
+      if (!addUsername) {
+        return res.status(400).json({ error: "Username of user to add is required." });
       }
 
-      const alreadyInConversation = conversation.users.some(user => user.id === addUserId);
+      const userToAdd = await prisma.user.findUnique({
+        where: { username: addUsername },
+        select: { id: true },
+      });
+
+      if (!userToAdd) {
+        return res.status(404).json({ error: "User not found." });
+      }
+
+      const alreadyInConversation = conversation.users.some(
+        (user) => user.id === userToAdd.id
+      );
+
       if (alreadyInConversation) {
         return res.status(409).json({ error: "User is already in the conversation." });
       }
@@ -255,7 +308,7 @@ export const conversation_add_user_post = [
       await prisma.conversation.update({
         where: { id: conversation.id },
         data: {
-          users: { connect: { id: addUserId } },
+          users: { connect: { id: userToAdd.id } },
         },
       });
 
@@ -263,7 +316,42 @@ export const conversation_add_user_post = [
     } catch (err) {
       next(err);
     }
-  }
+  },
+];
+
+export const conversation_leave_post = [
+  checkConversationAuth,
+  async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+      const { conversation } = req;
+
+      if (conversation.id === "global") {
+        return res.status(403).json({ error: "You cannot leave the global chat." });
+      }
+
+      // Delete conversation if last user leaves
+      if (conversation.users.length === 1) {
+        await prisma.conversation.delete({
+          where: { id: conversation.id },
+        });
+        return res.status(200).json({ message: "Conversation deleted as you were the last member." });
+      }
+
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: {
+          users: {
+            disconnect: { id: userId },
+          },
+        },
+      });
+
+      res.status(200).json({ message: "You have successfully left the conversation." });
+    } catch (err) {
+      next(err);
+    }
+  },
 ];
 
 // Fetches only new messages in a conversation since a given timestamp.
