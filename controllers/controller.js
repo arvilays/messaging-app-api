@@ -73,6 +73,7 @@ export const signup_post = [
       await prisma.user.create({
         data: {
           username: req.body.username,
+          username_lowercase: req.body.username.toLowerCase(),
           password: hashedPassword,
           conversations: {
             connect: { id: "global" },
@@ -91,8 +92,15 @@ export const signup_post = [
 
 export const login_post = async (req, res, next) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { username: req.body.username },
+    const { username } = req.body.username;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        username: {
+          equals: username.trim(),
+          mode: 'insensitive',
+        },
+      },
     });
 
     if (!user) {
