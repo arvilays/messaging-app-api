@@ -92,14 +92,11 @@ export const signup_post = [
 
 export const login_post = async (req, res, next) => {
   try {
-    const { username } = req.body.username;
+    const { username } = req.body;
 
-    const user = await prisma.user.findFirst({
+    const user = await prisma.user.findUnique({
       where: {
-        username: {
-          equals: username.trim(),
-          mode: 'insensitive',
-        },
+        username_lowercase: username.toLowerCase(),
       },
     });
 
