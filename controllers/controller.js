@@ -70,6 +70,7 @@ export const signup_post = [
 
     try {
       const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
       await prisma.user.create({
         data: {
           username: req.body.username,
@@ -93,7 +94,7 @@ export const signup_post = [
 export const login_post = async (req, res, next) => {
   try {
     const { username } = req.body;
-    const lowercaseUsername = username.toLowerCase();
+    const lowercaseUsername = username.trim().toLowerCase();
 
     const user = await prisma.user.findUnique({
       where: { username_lowercase: lowercaseUsername },
