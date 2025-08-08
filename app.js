@@ -9,7 +9,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- Middleware ---
-app.use(express.json());
+const corsOptions = {
+  origin: 'https://echo-messenger.netlify.app',
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: false }));
 app.use(passport.initialize());
 
