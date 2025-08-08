@@ -220,8 +220,13 @@ export const conversation_post = async (req, res, next) => {
       return res.status(400).json({ error: "You cannot create a conversation with only yourself." });
     }
 
+    const lowercasedUsersToFind = usersToFind.map(name => name.toLowerCase());
     const foundUsers = await prisma.user.findMany({
-      where: { username: { in: usersToFind } },
+      where: {
+        username_lowercase: {
+          in: lowercasedUsersToFind,
+        },
+      },
       select: { id: true, username: true },
     });
 
@@ -294,7 +299,9 @@ export const conversation_add_user_post = [
       }
 
       const userToAdd = await prisma.user.findUnique({
-        where: { username: addUsername },
+        where: {
+          username_lowercase: addUsername.toLowerCase(),
+        },
         select: { id: true },
       });
 
