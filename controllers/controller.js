@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import emojiRegex from "emoji-regex";
 import { clean, isProfane } from "../utils/filter.js";
 import { body, validationResult } from "express-validator";
+import { generateRandomUsername, generateRandomPassword, getRandomGreeting } from "../utils/random.js";
 
 const COMBINING_MARK_REGEX = /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF]/g;
 
@@ -117,6 +118,87 @@ export const login_post = async (req, res, next) => {
     next(err);
   }
 };
+
+export const guest_signup_post = async (req, res, next) => {
+  try {
+    let isUnique = false;
+    let guestUsername;
+
+    // Ensure generated username is unique
+    while (!isUnique) {
+      guestUsername = generateRandomUsername();
+      const existingUser = await prisma.user.findUnique({
+        where: { username_lowercase: guestUsername.toLowerCase() },
+      });
+      if (!existingUser) {
+        isUnique = true;
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(generateRandomPassword(), 10);
+
+    const newUser = await prisma.user.create({
+      data: {
+        username: guestUsername,
+        username_lowercase: guestUsername.toLowerCase(),
+        password: hashedPassword,
+        conversations: {
+          connect: { id: "global" },
+        }
+      }
+    })
+
+    // Generate sample conversations for guest
+    const sampleConversations = [
+      ["Bob"],
+      ["Finn", "Claire"],
+      ["Daniel", "Ellie", "Gavin"],
+      ["Hershel", "Ivy", "John", "Kirby"],
+    ];
+
+    const allSampleUsernames = [...new Set(sampleConversations.flat())];
+
+    const foundSampleUsers = await prisma.user.findMany({
+      where: { username: { in: allSampleUsernames } },
+      select: { id: true, username: true },
+    });
+
+    const userMap = new Map(foundSampleUsers.map(u => [u.username, u.id]));
+    userMap.set(newUser.username, newUser.id);
+
+    for (const participantNames of sampleConversations) {
+      const participantIds = [newUser.id, ...participantNames.map(name => userMap.get(name))];
+
+      const newConversation = await prisma.conversation.create({
+        data: {
+          creator: { connect: { id: newUser.id } },
+          users: { connect: participantIds.map(id => ({ id })) },
+        },
+      });
+
+      for (const name of participantNames) {
+        const randomMessage = `${getRandomGreeting()} ${name}!`;
+        await prisma.message.create({
+          data: {
+            content: randomMessage,
+            conversation: { connect: { id: newConversation.id } },
+            user: { connect: { id: userMap.get(name) } },
+          },
+        });
+      }
+    }
+
+    const payload = { id: newUser.id, username: newUser.username };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+    res.status(201).json({
+      message: "Guest account created and logged in.",
+      token: `Bearer ${token}`,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
 
 export const user_get = async (req, res, next) => {
   try {

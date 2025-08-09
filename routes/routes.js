@@ -7,6 +7,7 @@ const router = Router();
 // --- Authentication Routes ---
 router.post("/signup", ...controller.signup_post);
 router.post("/login", controller.login_post);
+router.post("/guest-signup", controller.guest_signup_post);
 
 // --- Protected Routes Middleware ---
 const protect = passport.authenticate("jwt", { session: false });
