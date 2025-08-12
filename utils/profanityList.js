@@ -37,7 +37,7 @@ export const blacklist = [
   "mothafuck", "mothafucka", "mothafuckas", "mothafuckaz", "mothafucked", "mothafucker", "mothafuckers", "mothafuckin",
   "mothafucking", "mothafuckings", "motherfucker", "motherfuckers", "motherfuckin", "motherfucking", "motherfuckings", "muff",
   "mutha", "muthafecker", "muthafuckker", "muther", "mutherfucker", "n1gga", "n1gger", "nazi",
-  "nigg3r", "nigg4h", "nigga", "niggah", "niggaz", "nigger", "niggers", "nob",
+  "nigg3r", "nigg4h", "nigga", "niggga", "niggah", "niggas", "niggaz", "nigger", "niggers", "nob",
   "nob jokey", "nobhead", "nobjocky", "nobjokey", "numbnuts", "nutsack", "orgasim", "orgasims",
   "orgasm", "orgasms", "p0rn", "pawn", "pecker", "penis", "penisfucker", "phonesex",
   "phuck", "phuk", "phuked", "phuking", "phukked", "phukking", "phuks", "phuq",
