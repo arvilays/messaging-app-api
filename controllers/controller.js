@@ -50,7 +50,7 @@ const checkConversationAuth = async (req, res, next) => {
 export const signup_post = [
   body("username")
     .trim()
-    .isLength({ min: 1 }).withMessage("Username cannot be empty.")
+    .isLength({ min: 1, max: 32 }).withMessage("Username must be between 1 and 32 characters long.")
     .custom((value) => {
       if (isProfane(value)) throw new Error("Username contains inappropriate language.");
       if (isZalgo(value)) throw new Error("Username contains distorted text.");
@@ -511,6 +511,10 @@ export const message_post = [
 
       if (!message || !message.trim()) {
         return res.status(400).json({ error: "Message content cannot be empty." });
+      }
+
+      if (message.length > 2000) {
+        return res.status(400).json({ error: "Message content cannot exceed 2000 characters." });
       }
 
       if (isZalgo(message)) {
